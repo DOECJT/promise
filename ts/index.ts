@@ -3,7 +3,21 @@ import { Func } from './utils.js'
 type Resolve = (arg: any) => any
 type Reject = (arg: any) => any
 
-function resolvePromise(promise, x, resolve, reject) {}
+function resolvePromise(promise, x, resolve, reject) {
+  if (promise === x) {
+    throw new TypeError('Chaining cycle detected for promise xixi')
+  }
+  if (x instanceof PromiseA) {
+    x.then(
+      y => {
+        resolvePromise(promise, y, resolve, reject)
+      },
+      error => {
+        reject(error)
+      }
+    )
+  }
+}
 
 export class PromiseA<T> {
   private static PENDING = 'pending'
@@ -51,19 +65,23 @@ export class PromiseA<T> {
   }
 
   then(onFulfilled?: Func, onRejected?: Func) {
-    onFulfilled = typeof onFulfilled === 'function' ? onFulfilled : (value) => value
-    onRejected = typeof onRejected === 'function'
-      ? onRejected
-      : (reason) => {
-        throw reason
-      }
+    // onFulfilled = typeof onFulfilled === 'function' ? onFulfilled : (value) => value
+    // onRejected = typeof onRejected === 'function'
+    //   ? onRejected
+    //   : (reason) => {
+    //     throw reason
+    //   }
     
     const promise = new Promise((resolve, reject) => {
       if (this.PromiseState === PromiseA.FULFILLED) {
         queueMicrotask(() => {
           try {
-            const x = onFulfilled(this.PromiseResult)
-            resolvePromise(promise, x, resolve, reject)
+            if (typeof onFulfilled !== 'function') {
+              resolve(this.PromiseResult)
+            } else {
+              const x = onFulfilled(this.PromiseResult)
+              resolvePromise(promise, x, resolve, reject)
+            }
           } catch (error) {
             reject(error)
           }
@@ -72,8 +90,12 @@ export class PromiseA<T> {
       } else if (this.PromiseState === PromiseA.REJECTED) {
         queueMicrotask(() => {
           try {
-            const x = onRejected(this.PromiseResult)
-            resolvePromise(promise, x, resolve, reject)
+            if (typeof onRejected !== 'function') {
+              reject(this.PromiseResult)
+            } else {
+              const x = onRejected(this.PromiseResult)
+              resolvePromise(promise, x, resolve, reject)
+            }
           } catch (error) {
             reject(error)
           }
@@ -82,16 +104,24 @@ export class PromiseA<T> {
       } else if (this.PromiseState === PromiseA.PENDING) {
         this.onFulfilledCallbacks.push((result) => {
           try {
-            const x = onFulfilled(result)
-            resolvePromise(promise, x, resolve, reject)
+            if (typeof onFulfilled !== 'function') {
+              resolve(this.PromiseResult)
+            } else {
+              const x = onFulfilled(result)
+              resolvePromise(promise, x, resolve, reject)
+            }
           } catch (error) {
             reject(error)
           }
         })
         this.onRejectedCallbacks.push((reason) => {
           try {
-            onRejected(reason)
-            resolvePromise(promise, x, resolve, reject)
+            if (typeof onRejected !== 'function') {
+              reject(this.PromiseResult)
+            } else {
+              const x = onRejected(reason)
+              resolvePromise(promise, x, resolve, reject)
+            }
           } catch (error) {
             reject(error)
           }

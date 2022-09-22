@@ -1,20 +1,13 @@
 import { PromiseA } from './index.js'
 
 let P: any = PromiseA
-P = Promise
+// P = Promise
 
 const p = new P((resolve, reject) => {
-  setTimeout(() => {
-    resolve('xixi')
-  }, 1000)
+  resolve(100)
   // throw new Error('error')
 })
-p.then(() => {
-  console.log(1)
-}).then(() => {
-  console.log(2)
-})
-
+const p1 = p.then(() => p1)
 
 // p.then(
 //   (result) => {
