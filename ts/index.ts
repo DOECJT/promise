@@ -16,6 +16,37 @@ function resolvePromise(promise, x, resolve, reject) {
         reject(error)
       }
     )
+  } else if (x !== null && ((typeof x === 'object') || (typeof x === 'function'))) {
+    try {
+      var then = x.then
+    } catch (error) {
+      reject(error)
+    }
+
+    if (typeof then === 'function') {
+      let called = false
+      try {
+        then.call(
+          x,
+          y => {
+            if (called) return
+            called = true
+            resolvePromise(promise, y, resolve, reject)
+          },
+          r => {
+            if (called) return
+            called = true
+            reject(r)
+          }
+        )
+      } catch (error) {
+        if (called) return
+        called = true
+        reject(e)
+      }
+    }
+  } else {
+    return resolve(x)
   }
 }
 
@@ -130,5 +161,14 @@ export class PromiseA<T> {
     })
 
     return promise
+  }
+
+  static deferred = function () {
+    let result = {}
+    result.promise = new PromiseA((resolve, reject) => {
+      result.resolve = resolve
+      result.reject = reject
+    })
+    return result
   }
 }
